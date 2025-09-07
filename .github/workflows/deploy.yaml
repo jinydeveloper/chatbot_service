@@ -47,9 +47,9 @@ jobs:
           mkdir -p /home/ubuntu/chatbot_service/.streamlit
           cat <<EOF > /home/ubuntu/chatbot_service/.streamlit/secrets.toml
           [aws]
-          aws_access_key_id = "${{ secrets.AWS_ACCESS_KEY_ID }}"
-          aws_secret_access_key = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-          region_name = "${{ secrets.AWS_DEFAULT_REGION }}"
+          AWS_ACCESS_KEY_ID = "${{ secrets.AWS_ACCESS_KEY_ID }}"
+          AWS_SECRET_ACCESS_KEY = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+          AWS_DEFAULT_REGION = "${{ secrets.AWS_DEFAULT_REGION }}"
           EOF
 
           # 가상환경 생성/활성화
