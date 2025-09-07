@@ -11,9 +11,9 @@ def init_bedrock_client():
     try:
         client = boto3.client(
             'bedrock-runtime',
-            region_name=st.secrets["AWS_DEFAULT_REGION"],  # 원하는 리전으로 변경
-            aws_access_key_id=st.secrets["AWS_ACCESS_KEY_ID"],
-            aws_secret_access_key=st.secrets["AWS_SECRET_ACCESS_KEY"]
+            region_name=st.secrets["aws"]["AWS_DEFAULT_REGION"],  # 원하는 리전으로 변경
+            aws_access_key_id=st.secrets["aws"]["AWS_ACCESS_KEY_ID"],
+            aws_secret_access_key=st.secrets["aws"]["AWS_SECRET_ACCESS_KEY"]
         )
         return client
     except Exception as e:

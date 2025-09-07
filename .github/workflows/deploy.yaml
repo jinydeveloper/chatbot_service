@@ -43,6 +43,15 @@ jobs:
           # Git repository 업데이트
           git pull origin main
           
+          # .streamlit/secrets.toml 생성
+          mkdir -p /home/ubuntu/chatbot_service/.streamlit
+          cat <<EOF > /home/ubuntu/chatbot_service/.streamlit/secrets.toml
+          [aws]
+          aws_access_key_id = "${{ secrets.AWS_ACCESS_KEY_ID }}"
+          aws_secret_access_key = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+          region_name = "${{ secrets.AWS_DEFAULT_REGION }}"
+          EOF
+
           # 가상환경 생성/활성화
           if [ ! -d "venv" ]; then
             python3 -m venv venv
@@ -51,14 +60,6 @@ jobs:
           
           # 의존성 업데이트
           pip install -r requirements.txt
-
-          #.streamlit 디렉토리 생성
-          mkdir -p .streamlit
-
-          # AWS 환경 변수 설정
-          export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
-          export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-          export AWS_DEFAULT_REGION="${{ secrets.AWS_DEFAULT_REGION }}"
 
           # systemd 서비스 재시작
           sudo systemctl daemon-reload
