@@ -19,7 +19,7 @@ jobs:
       with:
         python-version: '3.13'
         
-    - name: Install dependencies
+    - name: Install dependencies (CI validation only)
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
@@ -43,29 +43,26 @@ jobs:
           # Git repository 업데이트
           git pull origin main
           
-          # 가상환경 활성화 (있는 경우)
-          source venv/bin/activate || echo "Virtual environment not found"
+          # 가상환경 생성/활성화
+          if [ ! -d "venv" ]; then
+            python3 -m venv venv
+          fi
+          source venv/bin/activate
           
           # 의존성 업데이트
-          if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
-          else
-            echo "requirements.txt not found, installing basic packages"
-            pip install streamlit pandas numpy
-          fi
+          pip install -r requirements.txt
           
-          # 기존 Streamlit 프로세스 종료
-          pkill -f "streamlit run" || echo "No existing streamlit process found"
+          # systemd 서비스 재시작
+          sudo systemctl daemon-reload
+          sudo systemctl restart streamlit.service
           
-          # Streamlit 앱 백그라운드에서 실행
-          nohup streamlit run app.py --server.port=8501 --server.address=0.0.0.0 > streamlit.log 2>&1 &
-          
-          # 프로세스가 정상적으로 시작되었는지 확인
+          # 서비스 상태 확인
           sleep 5
-          if pgrep -f "streamlit run" > /dev/null; then
+          if systemctl is-active --quiet streamlit; then
             echo "Streamlit app deployed successfully"
           else
-            echo "Failed to start Streamlit app"
+            echo "Streamlit app failed to start"
+            sudo journalctl -u streamlit --no-pager -n 20
             exit 1
           fi
 
