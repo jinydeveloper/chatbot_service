@@ -75,6 +75,12 @@ jobs:
             exit 1
           fi
 
+          echo ">>> 다른 서버로 코드 동기화 시작"
+          rsync -avz --delete /home/ubuntu/chatbot_service ubuntu@${{ secrets.EC2_SUB_HOST_1 }}:/home/ubuntu/chatbot_service
+
+          echo ">>> 다른 서버 서비스 재시작"
+          ssh ubuntu@${{ secrets.EC2_SUB_HOST_1 }} "sudo systemctl restart streamlit.service"
+
   notify:
     needs: deploy
     runs-on: ubuntu-latest
@@ -84,7 +90,7 @@ jobs:
     - name: Notify deployment status
       run: |
         if [ "${{ needs.deploy.result }}" == "success" ]; then
-          echo "🚀 Deployment successful!"
+          echo "Deployment successful!"
         else
-          echo "❌ Deployment failed!"
+          echo "Deployment failed!"
         fi
