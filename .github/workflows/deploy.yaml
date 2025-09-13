@@ -76,7 +76,7 @@ jobs:
           fi
 
           echo ">>> 다른 서버로 코드 동기화 시작"
-          rsync -avz --delete /home/ubuntu/chatbot_service ubuntu@${{ secrets.EC2_SUB_HOST_1 }}:/home/ubuntu/chatbot_service
+          rsync -avz --delete /home/ubuntu/chatbot_service ubuntu@${{ secrets.EC2_SUB_HOST_1 }}:/home/ubuntu
 
           echo ">>> 다른 서버 서비스 재시작"
           ssh ubuntu@${{ secrets.EC2_SUB_HOST_1 }} "sudo systemctl restart streamlit.service"
