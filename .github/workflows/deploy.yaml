@@ -34,7 +34,7 @@ jobs:
         script: |
           # Private EC2 접근을 위한 키 설정
           echo "${{ secrets.EC2_SSH_KEY }}" > /tmp/private_key.pem
-          chmod 400 /tmp/private_key.pem
+          chmod 600 /tmp/private_key.pem
           
           # 서버 목록 정의
           SERVERS=(
