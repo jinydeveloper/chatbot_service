@@ -50,49 +50,40 @@ jobs:
             
             echo "=== $SERVER_NAME ($SERVER_IP) 배포 시작 ==="
             
-            ssh -i /tmp/private_key.pem -o StrictHostKeyChecking=no ubuntu@$SERVER_IP << 'DEPLOY_SCRIPT'
-            
-            # 프로젝트 디렉토리로 이동
-            cd /home/ubuntu/chatbot_service || exit 1
-            
-            # Git repository 업데이트
-            git pull origin main
-            
-            # .streamlit/secrets.toml 생성
-            mkdir -p .streamlit
-            cat <<EOF > .streamlit/secrets.toml
-            [aws]
-            AWS_ACCESS_KEY_ID = "${{ secrets.AWS_ACCESS_KEY_ID }}"
-            AWS_SECRET_ACCESS_KEY = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-            AWS_DEFAULT_REGION = "${{ secrets.AWS_DEFAULT_REGION }}"
-            EOF
+            ssh -i /tmp/private_key.pem -o StrictHostKeyChecking=no ubuntu@$SERVER_IP "
+              cd /home/ubuntu/chatbot_service || exit 1
+              
+              git pull origin main
+              
+              mkdir -p .streamlit
+              cat > .streamlit/secrets.toml << 'SECRETS_EOF'
+              [aws]
+              AWS_ACCESS_KEY_ID = \"${{ secrets.AWS_ACCESS_KEY_ID }}\"
+              AWS_SECRET_ACCESS_KEY = \"${{ secrets.AWS_SECRET_ACCESS_KEY }}\"
+              AWS_DEFAULT_REGION = \"${{ secrets.AWS_DEFAULT_REGION }}\"
+              SECRETS_EOF
 
-            # 가상환경 설정
-            if [ ! -d "venv" ]; then
-              python3 -m venv venv
-            fi
-            source venv/bin/activate
-            
-            # 의존성 설치
-            pip install --upgrade pip
-            pip install -r requirements.txt
+              if [ ! -d 'venv' ]; then
+                python3 -m venv venv
+              fi
+              source venv/bin/activate
+              
+              pip install --upgrade pip
+              pip install -r requirements.txt
 
-            # systemd 서비스 재시작
-            sudo systemctl daemon-reload
-            sudo systemctl restart streamlit.service
-            
-            # 서비스 상태 확인
-            sleep 5
-            if systemctl is-active --quiet streamlit.service; then
-              echo "$SERVER_NAME 배포 성공"
-              return 0
-            else
-              echo "$SERVER_NAME 배포 실패"
-              sudo journalctl -u streamlit.service --no-pager -n 20
-              return 1
-            fi
-
-            DEPLOY_SCRIPT
+              sudo systemctl daemon-reload
+              sudo systemctl restart streamlit.service
+              
+              sleep 5
+              if systemctl is-active --quiet streamlit.service; then
+                echo '$SERVER_NAME 배포 성공'
+                exit 0
+              else
+                echo '$SERVER_NAME 배포 실패'
+                sudo journalctl -u streamlit.service --no-pager -n 20
+                exit 1
+              fi
+            "
             
             local DEPLOY_RESULT=$?
             echo "=== $SERVER_NAME 배포 완료 (결과: $DEPLOY_RESULT) ==="
