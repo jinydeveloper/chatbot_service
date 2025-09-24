@@ -1,4 +1,4 @@
-name: Deploy Streamlit App to EC2
+name: Deploy Streamlit App to Private EC2
 
 on:
   push:
@@ -24,12 +24,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         
-    - name: Run tests (optional)
-      run: |
-        # pytest tests/ --verbose
-        echo "Tests would run here"
-        
-    - name: Deploy to EC2
+    - name: Deploy to Private EC2 Instances
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{ secrets.EC2_HOST }}
@@ -37,49 +32,104 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         port: ${{ secrets.EC2_SSH_PORT }}
         script: |
-          # 프로젝트 디렉토리로 이동
-          cd /home/ubuntu/chatbot_service || exit 1
+          # Private EC2 접근을 위한 키 설정
+          echo "${{ secrets.EC2_SSH_KEY }}" > /tmp/private_key.pem
+          chmod 400 /tmp/private_key.pem
           
-          # Git repository 업데이트
-          git pull origin main
+          # 서버 목록 정의
+          SERVERS=(
+            "${{ secrets.PRIVATE_EC2_HOST }}:Private-EC2-Main"
+            "${{ secrets.PRIVATE_EC2_SUB_HOST_1 }}:Private-EC2-Sub"
+          )
           
-          # .streamlit/secrets.toml 생성
-          mkdir -p /home/ubuntu/chatbot_service/.streamlit
-          cat <<EOF > /home/ubuntu/chatbot_service/.streamlit/secrets.toml
-          [aws]
-          AWS_ACCESS_KEY_ID = "${{ secrets.AWS_ACCESS_KEY_ID }}"
-          AWS_SECRET_ACCESS_KEY = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-          AWS_DEFAULT_REGION = "${{ secrets.AWS_DEFAULT_REGION }}"
-          EOF
+          # 배포 함수 정의
+          deploy_to_server() {
+            local SERVER_INFO=$1
+            local SERVER_IP=$(echo $SERVER_INFO | cut -d':' -f1)
+            local SERVER_NAME=$(echo $SERVER_INFO | cut -d':' -f2)
+            
+            echo "=== $SERVER_NAME ($SERVER_IP) 배포 시작 ==="
+            
+            ssh -i /tmp/private_key.pem -o StrictHostKeyChecking=no ubuntu@$SERVER_IP << 'DEPLOY_SCRIPT'
+            
+            # 프로젝트 디렉토리로 이동
+            cd /home/ubuntu/chatbot_service || exit 1
+            
+            # Git repository 업데이트
+            git pull origin main
+            
+            # .streamlit/secrets.toml 생성
+            mkdir -p .streamlit
+            cat <<EOF > .streamlit/secrets.toml
+            [aws]
+            AWS_ACCESS_KEY_ID = "${{ secrets.AWS_ACCESS_KEY_ID }}"
+            AWS_SECRET_ACCESS_KEY = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+            AWS_DEFAULT_REGION = "${{ secrets.AWS_DEFAULT_REGION }}"
+            EOF
 
-          # 가상환경 생성/활성화
-          if [ ! -d "venv" ]; then
-            python3 -m venv venv
-          fi
-          source venv/bin/activate
-          
-          # 의존성 업데이트
-          pip install -r requirements.txt
+            # 가상환경 설정
+            if [ ! -d "venv" ]; then
+              python3 -m venv venv
+            fi
+            source venv/bin/activate
+            
+            # 의존성 설치
+            pip install --upgrade pip
+            pip install -r requirements.txt
 
-          # systemd 서비스 재시작
-          sudo systemctl daemon-reload
-          sudo systemctl restart streamlit.service
+            # systemd 서비스 재시작
+            sudo systemctl daemon-reload
+            sudo systemctl restart streamlit.service
+            
+            # 서비스 상태 확인
+            sleep 5
+            if systemctl is-active --quiet streamlit.service; then
+              echo "$SERVER_NAME 배포 성공"
+              return 0
+            else
+              echo "$SERVER_NAME 배포 실패"
+              sudo journalctl -u streamlit.service --no-pager -n 20
+              return 1
+            fi
+
+            DEPLOY_SCRIPT
+            
+            local DEPLOY_RESULT=$?
+            echo "=== $SERVER_NAME 배포 완료 (결과: $DEPLOY_RESULT) ==="
+            return $DEPLOY_RESULT
+          }
           
-          # 서비스 상태 확인
-          sleep 5
-          if systemctl is-active --quiet streamlit; then
-            echo "Streamlit app deployed successfully"
+          # 병렬 배포 실행
+          declare -a PIDS
+          declare -a RESULTS
+          
+          for i in "${!SERVERS[@]}"; do
+            deploy_to_server "${SERVERS[$i]}" &
+            PIDS[$i]=$!
+          done
+          
+          # 모든 배포 프로세스 대기
+          OVERALL_SUCCESS=true
+          for i in "${!PIDS[@]}"; do
+            wait ${PIDS[$i]}
+            RESULTS[$i]=$?
+            if [ ${RESULTS[$i]} -ne 0 ]; then
+              OVERALL_SUCCESS=false
+              echo "서버 ${i}번 배포 실패"
+            fi
+          done
+          
+          # 임시 파일 정리
+          rm -f /tmp/private_key.pem
+          
+          # 최종 결과 확인
+          if [ "$OVERALL_SUCCESS" = true ]; then
+            echo ">>> 모든 서버 배포 성공!"
+            exit 0
           else
-            echo "Streamlit app failed to start"
-            sudo journalctl -u streamlit --no-pager -n 20
+            echo ">>> 일부 서버 배포 실패!"
             exit 1
           fi
-
-          echo ">>> 다른 서버로 코드 동기화 시작"
-          rsync -avz --delete /home/ubuntu/chatbot_service ubuntu@${{ secrets.EC2_SUB_HOST_1 }}:/home/ubuntu
-
-          echo ">>> 다른 서버 서비스 재시작"
-          ssh ubuntu@${{ secrets.EC2_SUB_HOST_1 }} "sudo systemctl restart streamlit.service"
 
   notify:
     needs: deploy
@@ -90,7 +140,8 @@ jobs:
     - name: Notify deployment status
       run: |
         if [ "${{ needs.deploy.result }}" == "success" ]; then
-          echo "Deployment successful!"
+          echo "모든 Private EC2 서버 배포 성공!"
         else
-          echo "Deployment failed!"
+          echo "Private EC2 서버 배포 실패!"
+          exit 1
         fi
