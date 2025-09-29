@@ -96,9 +96,6 @@ jobs:
               pip install -r requirements.txt
               
               # 의존성 설치 확인
-              echo "설치된 패키지 확인:"
-              pip list | grep -E "streamlit|boto3|botocore" || true
-
               sudo systemctl daemon-reload
               sudo systemctl restart streamlit.service
 
