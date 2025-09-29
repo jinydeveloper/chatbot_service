@@ -68,6 +68,8 @@ jobs:
             
             # 2단계: 배포 작업 수행
             ssh -i /tmp/private_key.pem -o StrictHostKeyChecking=no ubuntu@$SERVER_IP "
+              # 디렉토리 생성 및 이동
+              mkdir -p /home/ubuntu/chatbot_service
               cd /home/ubuntu/chatbot_service || exit 1
               
               mkdir -p .streamlit
@@ -78,6 +80,16 @@ jobs:
               AWS_DEFAULT_REGION = \"${{ secrets.AWS_DEFAULT_REGION }}\"
               SECRETS_EOF
 
+              # Python 3 설치 확인 및 venv 생성
+              if ! command -v python3 &> /dev/null; then
+                echo "Python 3 설치 중..."
+                sudo apt update
+                sudo apt install -y software-properties-common
+                sudo add-apt-repository -y ppa:deadsnakes/ppa
+                sudo apt update
+                sudo apt install -y python3 python3-venv python3-pip
+              fi
+              
               if [ ! -d 'venv' ]; then
                 python3 -m venv venv
               fi
@@ -85,6 +97,10 @@ jobs:
               
               pip install --upgrade pip
               pip install -r requirements.txt
+              
+              # 의존성 설치 확인
+              echo "설치된 패키지 확인:"
+              pip list | grep -E "(streamlit|boto3|botocore)"
 
               sudo systemctl daemon-reload
               sudo systemctl restart streamlit.service
