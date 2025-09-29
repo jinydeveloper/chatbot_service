@@ -93,8 +93,6 @@ jobs:
               source venv/bin/activate
               
               pip install --upgrade pip
-              pip install streamlit
-              pip install streamlit boto3
               pip install -r requirements.txt
               
               # 의존성 설치 확인
