@@ -73,7 +73,7 @@ jobs:
               mkdir -p /home/ubuntu/chatbot_service/.streamlit
 
               # secrets.toml 파일 작성
-              cat /home/ubuntu/chatbot_service/.streamlit/secrets.toml << 'SECRETS_EOF'
+              cat /home/ubuntu/chatbot_service/.streamlit/secrets.toml <<-'SECRETS_EOF'
               [aws]
               AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
               AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -99,7 +99,7 @@ jobs:
               
               # 의존성 설치 확인
               echo "설치된 패키지 확인:"
-              pip list | grep -E "streamlit|boto3|botocore"
+              pip list | grep -E "streamlit|boto3|botocore" || true
 
               sudo systemctl daemon-reload
               sudo systemctl restart streamlit.service
