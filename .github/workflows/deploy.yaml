@@ -67,18 +67,18 @@ jobs:
             fi
             
             # 2단계: 배포 작업 수행
-            ssh -i /tmp/private_key.pem -o StrictHostKeyChecking=no ubuntu@$SERVER_IP
+            ssh -i /tmp/private_key.pem -o StrictHostKeyChecking=no ubuntu@$SERVER_IP "
               set -e
               
               mkdir -p /home/ubuntu/chatbot_service/.streamlit
 
               # secrets.toml 파일 작성
-              cat <<'EOT' > /home/ubuntu/chatbot_service/.streamlit/secrets.toml
+              cat /home/ubuntu/chatbot_service/.streamlit/secrets.toml << 'SECRETS_EOF'
               [aws]
               AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
               AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
               AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }}
-              EOT
+              SECRETS_EOF
 
               # Python 3 설치 확인 및 venv 생성
               if ! command -v python3 &> /dev/null; then
@@ -114,6 +114,7 @@ jobs:
                 sudo journalctl -u streamlit.service --no-pager -n 20
                 exit 1
               fi
+            "
             
             local DEPLOY_RESULT=$?
             echo "=== $SERVER_NAME 배포 완료 (결과: $DEPLOY_RESULT) ==="
