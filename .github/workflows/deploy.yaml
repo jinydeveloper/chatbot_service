@@ -104,7 +104,6 @@ jobs:
 
               sudo systemctl daemon-reload
               sudo systemctl restart streamlit.service
-            EOF
 
               sleep 5
               if systemctl is-active --quiet streamlit.service; then
@@ -115,6 +114,7 @@ jobs:
                 sudo journalctl -u streamlit.service --no-pager -n 20
                 exit 1
               fi
+            EOF
             
             local DEPLOY_RESULT=$?
             echo "=== $SERVER_NAME 배포 완료 (결과: $DEPLOY_RESULT) ==="
