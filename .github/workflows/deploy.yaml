@@ -73,7 +73,7 @@ jobs:
               mkdir -p /home/ubuntu/chatbot_service/.streamlit
 
               # secrets.toml 파일 작성
-              cat <<EOT > /home/ubuntu/chatbot_service/.streamlit/secrets.toml
+              cat <<'EOT' > /home/ubuntu/chatbot_service/.streamlit/secrets.toml
               [aws]
               AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
               AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
