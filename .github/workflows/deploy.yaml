@@ -73,12 +73,11 @@ jobs:
               mkdir -p /home/ubuntu/chatbot_service/.streamlit
 
               # secrets.toml 파일 작성
-              cat <<EOT > /home/ubuntu/chatbot_service/.streamlit/secrets.toml
+              cat <<EOT> /home/ubuntu/chatbot_service/.streamlit/secrets.toml
               [aws]
               AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
               AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-              AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }}
-              EOT
+              AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }}EOT
 
               # Python 3 설치 확인 및 venv 생성
               if ! command -v python3 &> /dev/null; then
@@ -113,8 +112,7 @@ jobs:
                 echo "$SERVER_NAME 배포 실패"
                 sudo journalctl -u streamlit.service --no-pager -n 20
                 exit 1
-              fi
-            EOF
+              fiEOF
             
             local DEPLOY_RESULT=$?
             echo "=== $SERVER_NAME 배포 완료 (결과: $DEPLOY_RESULT) ==="
